@@ -14,17 +14,16 @@ import com.draco.ladb.R
 import com.draco.ladb.viewmodels.BookmarksActivityViewModel
 
 class BookmarksActivity: AppCompatActivity() {
-    companion object {
-        const val REQUEST_CODE = 123
-    }
-
     private val viewModel: BookmarksActivityViewModel by viewModels()
     private lateinit var recycler: RecyclerView
+    private lateinit var initialText: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bookmarks)
         recycler = findViewById(R.id.recycler)
+
+        initialText = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
 
         viewModel.prepareRecycler(this, recycler)
         viewModel.recyclerAdapter.pickHook = {
@@ -33,26 +32,19 @@ class BookmarksActivity: AppCompatActivity() {
             setResult(Activity.RESULT_OK, intent)
             finish()
         }
-    }
 
-    private fun addBookmark() {
-        val editText = EditText(this)
-        AlertDialog.Builder(this)
-            .setTitle("Add")
-            .setView(editText)
-            .setPositiveButton("Done") { _, _ ->
-                val text = editText.text.toString()
-                if (text.isNotEmpty())
-                    viewModel.recyclerAdapter.add(text)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        viewModel.recyclerAdapter.deleteHook = {
+            viewModel.areYouSure(this) { viewModel.recyclerAdapter.delete(it) }
+        }
+
+        viewModel.recyclerAdapter.editHook = { viewModel.edit(this, it) }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.add -> {
-                addBookmark()
+                viewModel.add(this, initialText)
+                initialText = ""
                 true
             }
 
